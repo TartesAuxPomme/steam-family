@@ -9,17 +9,31 @@
 body { font-family: "Segoe UI"; background-color: #1b2838; color: #fff; margin: 0; padding: 0; text-align: center; }
 header { background-color: #171a21; padding: 20px; box-shadow: 0 2px 10px #0007; }
 h1 { margin: 0; }
+.controls { margin-top: 10px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+select, input {
+  padding: 8px 12px; border-radius: 6px; border: none; font-size: 14px;
+  background: #2a475e; color: #fff; box-shadow: inset 0 0 5px #0008;
+  outline: none; transition: box-shadow 0.2s; cursor: pointer;
+}
+select:focus, input:focus { box-shadow: 0 0 10px #66c0f4; }
 #gamesContainer { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
 .game { background: #2a475e; border-radius: 12px; width: 180px; box-shadow: 0 0 10px #0007; overflow: hidden; cursor: pointer; transition: 0.2s; }
 .game:hover { transform: scale(1.05); }
 .game img { width: 100%; }
 .game-title { padding: 10px; font-weight: bold; font-size: 14px; }
+.owners { font-size: 12px; color: #aaa; padding-bottom: 10px; }
 footer { padding: 10px; font-size: 12px; color: #aaa; }
 </style>
 </head>
 <body>
 <header>
-  <h1>Jeux de ta bibliothèque</h1>
+  <h1>Bibliothèque Steam Familiale</h1>
+  <div class="controls">
+    <select id="playerFilter">
+      <option value="all">Tous les joueurs</option>
+    </select>
+    <input type="text" id="searchInput" placeholder="🔍 Rechercher un jeu..." />
+  </div>
 </header>
 
 <div id="gamesContainer">Chargement...</div>
@@ -30,30 +44,100 @@ const proxy = "https://steam-family.onrender.com";
 const userId = localStorage.getItem("currentUser");
 if (!userId) window.location.href = "login.html";
 
-async function loadGames() {
-  const res = await fetch(`${proxy}/api/ownedgames?steamid=${userId}`);
-  const data = await res.json();
-  const games = data.response.games || [];
-  const container = document.getElementById("gamesContainer");
-  container.innerHTML = "";
+const players = {
+  "76561199797208434": "apple pi",
+  "76561199428937867": "Ila0s",
+  "76561199683287336": "Fanini09",
+  "76561199208559725": "BLM295",
+  "76561198342426856": "Jimortal",
+  "76561198788807590": "Lame_double"
+};
 
-  games.forEach(g => {
-    const div = document.createElement("div");
-    div.className = "game";
-    div.innerHTML = `
-      <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg" alt="">
-      <div class="game-title">${g.name}</div>
-    `;
-    div.onclick = () => {
-      localStorage.setItem("currentGame", JSON.stringify({ appid: g.appid, name: g.name }));
-      window.location.href = "succes.html";
-    };
-    container.appendChild(div);
-  });
+const CACHE_KEY = "familyGamesCache";
+const CACHE_TIME = 1000 * 60 * 60 * 12; // 12h
+
+async function fetchGames(steamId) {
+  const res = await fetch(`${proxy}/api/ownedgames?steamid=${steamId}`);
+  const data = await res.json();
+  return data.response.games || [];
 }
 
-loadGames();
+async function loadAllGames(force = false) {
+  const cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "{}");
+  if (!force && cached.timestamp && Date.now() - cached.timestamp < CACHE_TIME) {
+    renderGames(cached.data);
+    return;
+  }
+
+  const allGames = {};
+
+  for (const [id, name] of Object.entries(players)) {
+    try {
+      const games = await fetchGames(id);
+      for (const g of games) {
+        if (!allGames[g.appid]) {
+          allGames[g.appid] = { ...g, owners: [name] };
+        } else {
+          allGames[g.appid].owners.push(name);
+        }
+      }
+    } catch (err) {
+      console.error("Erreur lors du chargement de la bibliothèque de", name, err);
+    }
+  }
+
+  const gamesArray = Object.values(allGames).sort((a, b) => a.name.localeCompare(b.name));
+  localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: gamesArray }));
+  renderGames(gamesArray);
+}
+
+function renderGames(games) {
+  const container = document.getElementById("gamesContainer");
+  const playerFilter = document.getElementById("playerFilter");
+  const searchInput = document.getElementById("searchInput");
+
+  container.innerHTML = "";
+  playerFilter.innerHTML = '<option value="all">Tous les joueurs</option>';
+  Object.values(players).forEach(name => {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    playerFilter.appendChild(opt);
+  });
+
+  const render = () => {
+    const selectedPlayer = playerFilter.value;
+    const search = searchInput.value.toLowerCase();
+
+    container.innerHTML = "";
+    games
+      .filter(g => (selectedPlayer === "all" || g.owners.includes(selectedPlayer)))
+      .filter(g => g.name.toLowerCase().includes(search))
+      .forEach(g => {
+        const div = document.createElement("div");
+        div.className = "game";
+        div.innerHTML = `
+          <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg" alt="">
+          <div class="game-title">${g.name}</div>
+          <div class="owners">Disponible chez : ${g.owners.join(", ")}</div>
+        `;
+        div.onclick = () => {
+          localStorage.setItem("currentGame", JSON.stringify({ appid: g.appid, name: g.name }));
+          window.location.href = "succes.html";
+        };
+        container.appendChild(div);
+      });
+
+    if (container.innerHTML === "")
+      container.innerHTML = "<div>Aucun jeu trouvé.</div>";
+  };
+
+  playerFilter.addEventListener("input", render);
+  searchInput.addEventListener("input", render);
+  render();
+}
+
+loadAllGames();
 </script>
 </body>
 </html>
-
