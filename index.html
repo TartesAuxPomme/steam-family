@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bibliothèque Steam Familiale</title>
+<link rel="icon" type="image/x-icon" href="icon.ico">
+<style>
+body { font-family: "Segoe UI"; background-color: #1b2838; color: #fff; margin: 0; padding: 0; text-align: center; }
+header { background-color: #171a21; padding: 20px; box-shadow: 0 2px 10px #0007; }
+h1 { margin: 0; }
+#gamesContainer { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
+.game { background: #2a475e; border-radius: 12px; width: 180px; box-shadow: 0 0 10px #0007; overflow: hidden; cursor: pointer; transition: 0.2s; }
+.game:hover { transform: scale(1.05); }
+.game img { width: 100%; }
+.game-title { padding: 10px; font-weight: bold; font-size: 14px; }
+footer { padding: 10px; font-size: 12px; color: #aaa; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Jeux de ta bibliothèque</h1>
+</header>
+
+<div id="gamesContainer">Chargement...</div>
+<footer>Fait par apple 3.141592653589793238</footer>
+
+<script>
+const proxy = "http://localhost:3000";
+const userId = localStorage.getItem("currentUser");
+if (!userId) window.location.href = "login.html";
+
+async function loadGames() {
+  const res = await fetch(`${proxy}/api/ownedgames?steamid=${userId}`);
+  const data = await res.json();
+  const games = data.response.games || [];
+  const container = document.getElementById("gamesContainer");
+  container.innerHTML = "";
+
+  games.forEach(g => {
+    const div = document.createElement("div");
+    div.className = "game";
+    div.innerHTML = `
+      <img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/header.jpg" alt="">
+      <div class="game-title">${g.name}</div>
+    `;
+    div.onclick = () => {
+      localStorage.setItem("currentGame", JSON.stringify({ appid: g.appid, name: g.name }));
+      window.location.href = "succes.html";
+    };
+    container.appendChild(div);
+  });
+}
+
+loadGames();
+</script>
+</body>
+</html>
