@@ -4,159 +4,103 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Steam Family Library</title>
+
 <style>
-  /* Style inspiré de Steam : sombre + accents bleus */
   :root{
     --bg:#0b1218;
-    --panel:#0f1720;
-    --muted:#9aa6b2;
+    --panel:#111a24;
+    --muted:#8fa3b7;
     --accent:#1b8ad1;
-    --glass: rgba(255,255,255,0.03);
     --card-radius:12px;
     --card-gap:18px;
   }
-  html,body{height:100%;margin:0;font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;}
-  body{background: linear-gradient(180deg, #061018 0%, #07121a 60%); color:#e6eef6;}
+  html,body{margin:0;font-family:Inter, system-ui;background:var(--bg);color:#e6eef6;}
+
   header{
-    display:flex;
-    align-items:center;
-    gap:16px;
+    display:flex;align-items:center;gap:16px;
     padding:20px 28px;
-    border-bottom:1px solid rgba(255,255,255,0.03);
-    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
-    position:sticky; top:0; z-index:20;
+    border-bottom:1px solid rgba(255,255,255,0.04);
   }
-  .logo{
-    display:flex; gap:12px; align-items:center;
-  }
+  .logo{display:flex;gap:12px;align-items:center;}
   .logo .mark{
-    width:44px; height:44px; border-radius:8px; background:linear-gradient(180deg,var(--accent),#0b67a4);
-    display:flex; align-items:center; justify-content:center; font-weight:700; color:white; box-shadow: 0 6px 18px rgba(11,45,80,0.4);
+    width:44px;height:44px;border-radius:8px;
+    background:linear-gradient(180deg,var(--accent),#0b67a4);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:18px;color:white;
   }
-  h1{font-size:18px;margin:0}
-  .sub{color:var(--muted); font-size:13px}
-  main{padding:28px; max-width:1200px; margin:0 auto;}
+  h1{margin:0;font-size:18px;font-weight:600;}
+
+  main{padding:28px;max-width:1250px;margin:0 auto;}
   .grid{
     display:grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
     gap:var(--card-gap);
   }
 
-  /* Card jeu */
   .game-card{
-    background: linear-gradient(180deg, rgba(255,255,255,0.01), transparent);
-    border-radius: var(--card-radius);
-    overflow:visible;
+    background:rgba(255,255,255,0.03);
+    border-radius:var(--card-radius);
     padding:8px;
     position:relative;
-    transition: transform .12s ease, box-shadow .12s ease;
+    transition:transform .12s, box-shadow .12s;
     cursor:pointer;
   }
-  .game-card:hover{ transform: translateY(-6px); box-shadow: 0 10px 30px rgba(2,8,20,0.6); }
+  .game-card:hover{
+    transform:translateY(-6px);
+    box-shadow:0 10px 30px rgba(2,8,20,0.6);
+  }
 
   .poster{
     width:100%;
-    aspect-ratio: 2/3; /* format vertical */
-    background:#0b1220;
+    aspect-ratio:2/3;
     border-radius:10px;
     overflow:hidden;
-    display:flex; align-items:flex-end; justify-content:center;
   }
   .poster img{
-    width:100%;
-    height:100%;
-    object-fit:cover;
-    display:block;
+    width:100%;height:100%;object-fit:cover;
   }
 
-  .meta{
-    padding:10px 6px 14px;
-    text-align:center;
-  }
-  .name{font-weight:600;font-size:14px;line-height:1.2; margin-bottom:8px; color:#e7f0fa;}
-  .copies{ font-size:13px; color:var(--muted); }
+  .meta{text-align:center;padding:10px 6px 14px;}
+  .name{font-weight:600;font-size:14px;margin-bottom:8px;}
+  .copies{font-size:13px;color:var(--muted);}
 
-  /* Toolbox shown on hover */
   .toolbox{
-    position:absolute;
-    left:10px; right:10px;
-    bottom:12px;
-    background: linear-gradient(180deg, rgba(8,12,18,0.9), rgba(8,12,18,0.85));
-    border-radius:10px;
-    padding:8px;
-    display:flex;
-    gap:8px;
-    align-items:center;
-    transform: translateY(10px);
-    opacity:0;
-    pointer-events:none;
-    transition: transform .12s ease, opacity .12s ease;
-    border:1px solid rgba(255,255,255,0.03);
+    position:absolute;left:10px;right:10px;bottom:12px;
+    background:rgba(8,12,18,0.9);
+    padding:8px;border-radius:10px;
+    opacity:0;pointer-events:none;
+    transform:translateY(10px);
+    transition:.12s;
+    display:flex;gap:8px;flex-wrap:wrap;
   }
   .game-card:hover .toolbox{
-    transform: translateY(0);
-    opacity:1;
-    pointer-events:auto;
+    opacity:1;pointer-events:auto;transform:translateY(0);
   }
 
-  .owner{
-    display:flex; gap:8px; align-items:center;
-    min-width:0;
-  }
-  .owner img{ width:34px; height:34px; border-radius:50%; object-fit:cover; border:2px solid rgba(255,255,255,0.04); }
-  .owner .o-name{ font-size:13px; color:#dfeffc; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; max-width:90px; }
+  .owner{display:flex;gap:8px;align-items:center;}
+  .owner img{width:34px;height:34px;border-radius:50%;object-fit:cover;}
+  .o-name{font-size:13px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
-  /* small helpers */
-  .counts{ margin-left:auto; color:var(--muted); font-size:13px; display:flex; gap:6px; align-items:center;}
-  .loader{ color:var(--muted); padding:20px; text-align:center; }
-  .error{ color:#ffb4b4; padding:20px; text-align:center; }
-  footer{ padding:28px; text-align:center; color:var(--muted); font-size:13px;}
-  @media (max-width:520px){
-    .grid{ grid-template-columns: repeat(2,1fr); gap:12px;}
-  }
+  .loader,.error{text-align:center;padding:20px;}
+  .error{color:#ffb4b4;}
 </style>
 </head>
+
 <body>
 <header>
   <div class="logo">
     <div class="mark">SF</div>
-    <div>
-      <h1>Steam Family Library</h1>
-      <div class="sub">Affiche les jeux partagés entre amis — survol pour voir qui possède quoi</div>
-    </div>
+    <h1>Steam Family Library</h1>
   </div>
 </header>
 
 <main>
-  <section id="controls" style="margin-bottom:18px;">
-    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-      <div style="color:var(--muted);font-size:13px">Chargement depuis <code>steam-family.onrender.com</code></div>
-      <div style="margin-left:auto;color:var(--muted);font-size:13px" id="totalGames">—</div>
-    </div>
-  </section>
-
-  <section id="content">
-    <div id="loader" class="loader">Chargement des profils et des bibliothèques…</div>
-    <div id="grid" class="grid" style="display:none;"></div>
-    <div id="error" class="error" style="display:none;"></div>
-  </section>
+  <div id="loader" class="loader">Chargement…</div>
+  <div id="error" class="error" style="display:none;"></div>
+  <div id="grid" class="grid" style="display:none;"></div>
 </main>
 
-<footer>
-  Conçu pour ressembler à Steam — images verticales Steam utilisées (library_600x900). <br>
-  Modifie facilement la liste des SteamID dans le script si nécessaire.
-</footer>
-
 <script>
-/*
-  index.html front-end pour "Steam Family Library"
-  - liste des STEAMID64 fournie par l'utilisateur
-  - attend que ton serveur (https://steam-family.onrender.com) expose deux endpoints :
-      GET /players?steamids=ID1,ID2,...
-      GET /ownedgames?steamid=STEAMID
-  - Si tes routes sont différentes : change BASE_URL et les chemins ci-dessous.
-*/
-
 const STEAM_IDS = [
   "76561199797208434",
   "76561199428937867",
@@ -166,155 +110,103 @@ const STEAM_IDS = [
   "76561198788807590"
 ];
 
-const BASE_URL = "https://steam-family.onrender.com"; // ton serveur qui cache l'API key
+// ton domaine Render
+const BASE = "https://steam-family.onrender.com/api";
 
-const gridEl = document.getElementById('grid');
-const loaderEl = document.getElementById('loader');
-const errorEl = document.getElementById('error');
-const totalGamesEl = document.getElementById('totalGames');
-
-async function fetchPlayers(steamids){
-  const url = `${BASE_URL}/players?steamids=${steamids.join(',')}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('Impossible de récupérer les profils : ' + res.status);
-  return res.json();
+// 🔵 GET PROFILS
+async function getPlayerInfo(ids){
+  const r = await fetch(`${BASE}/players?steamids=${ids.join(",")}`);
+  if(!r.ok) throw new Error("Échec /api/players : " + r.status);
+  return r.json();
 }
 
-async function fetchOwnedGames(steamid){
-  const url = `${BASE_URL}/ownedgames?steamid=${steamid}`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error('Impossible de récupérer ownedgames pour ' + steamid);
-  return res.json();
+// 🔵 GET JEUX D’UN JOUEUR
+async function getOwnedGames(id){
+  const r = await fetch(`${BASE}/ownedgames?steamid=${id}`);
+  if(!r.ok) throw new Error("Échec /api/ownedgames : " + r.status);
+  return r.json();
 }
 
-/* Util: URL image "steam vertical" */
-function steamVerticalImage(appid){
-  // format commun : library_600x900.jpg — souvent disponible pour la plupart des jeux
+// 🔵 IMAGE VERTICALE OFFICIELLE STEAM
+function image(appid){
   return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`;
 }
 
-(async function main(){
+(async()=>{
+  const loader=document.getElementById("loader");
+  const error=document.getElementById("error");
+  const grid=document.getElementById("grid");
+
   try{
-    // 1) récupérer info joueurs (nom + avatar)
-    const playersResp = await fetchPlayers(STEAM_IDS);
-    // on s'attend à { players: [...] }
-    const players = playersResp.players || [];
-    const playersById = {};
-    players.forEach(p => playersById[p.steamid] = p);
+    // 1) Charger profils
+    const players = await getPlayerInfo(STEAM_IDS);
+    const byId={};
+    (players.response.players || []).forEach(p=>byId[p.steamid]=p);
 
-    // 2) récupérer owned games POUR CHAQUE joueur (en parallèle)
-    const promises = STEAM_IDS.map(id => fetchOwnedGames(id).then(r => ({steamid:id, games: r.games || []})));
-    const results = await Promise.all(promises);
+    // 2) Charger bibliothèques
+    const libs = await Promise.all(
+      STEAM_IDS.map(async id=>{
+        const res = await getOwnedGames(id);
+        return { id, games: res.response.games || [] };
+      })
+    );
 
-    // 3) agréger jeux : map appid -> { appid, name, count, owners: [steamid,...] }
-    const gameMap = new Map();
-    for(const res of results){
-      const ownerId = res.steamid;
-      for(const g of res.games){
-        const appid = String(g.appid);
-        const name = g.name || ("App " + appid);
-        if(!gameMap.has(appid)){
-          gameMap.set(appid, { appid, name, owners: new Set() });
-        }
-        gameMap.get(appid).owners.add(ownerId);
+    // 3) Fusionner en une seule liste {appid : {owners}}
+    const combined = new Map();
+    for(const lib of libs){
+      for(const g of lib.games){
+        if(!combined.has(g.appid))
+          combined.set(g.appid, {name:g.name, owners:new Set()});
+        combined.get(g.appid).owners.add(lib.id);
       }
     }
 
-    // Convertir owners sets en arrays et trier par nombre de propriétaires
-    const gamesArr = Array.from(gameMap.values()).map(g => {
-      const owners = Array.from(g.owners);
-      return { appid: g.appid, name: g.name, owners };
-    }).sort((a,b) => b.owners.length - a.owners.length || a.name.localeCompare(b.name));
+    loader.style.display="none";
+    grid.style.display="grid";
 
-    // Afficher total
-    totalGamesEl.textContent = `${gamesArr.length} jeux différents trouvés`;
+    // 4) Affichage
+    for(const [appid,data] of combined){
+      const card=document.createElement("div");
+      card.className="game-card";
 
-    // 4) rendre la grille
-    if(gamesArr.length === 0){
-      loaderEl.style.display = 'none';
-      errorEl.style.display = '';
-      errorEl.textContent = "Aucun jeu trouvé — vérifie que les SteamID sont corrects et que les bibliothèques ne sont pas privées.";
-      return;
-    }
+      const poster=document.createElement("div");
+      poster.className="poster";
+      poster.innerHTML=`<img src="${image(appid)}">`;
 
-    loaderEl.style.display = 'none';
-    gridEl.style.display = '';
-    for(const game of gamesArr){
-      const card = document.createElement('div');
-      card.className = 'game-card';
+      const meta=document.createElement("div");
+      meta.className="meta";
+      meta.innerHTML=`
+        <div class="name">${data.name}</div>
+        <div class="copies">${data.owners.size} copies</div>
+      `;
 
-      // image
-      const poster = document.createElement('div');
-      poster.className = 'poster';
-      const img = document.createElement('img');
-      img.src = steamVerticalImage(game.appid);
-      img.alt = game.name;
-      // si l'image 404, on peut remplacer par une image générique (optionnel)
-      img.onerror = () => {
-        img.onerror = null;
-        // fallback : Steam header (moins vertical) — on centre et crop
-        img.src = `https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/header.jpg`;
-      }
-      poster.appendChild(img);
+      const toolbox=document.createElement("div");
+      toolbox.className="toolbox";
 
-      // meta
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-      const nameEl = document.createElement('div');
-      nameEl.className = 'name';
-      nameEl.textContent = game.name;
-      const copiesEl = document.createElement('div');
-      copiesEl.className = 'copies';
-      copiesEl.textContent = `${game.owners.length} copie${game.owners.length>1?'s':''}`;
+      data.owners.forEach(id=>{
+        const p=byId[id] || {personaname:id, avatarfull:""};
+        const owner=document.createElement("div");
+        owner.className="owner";
+        owner.innerHTML=`
+          <img src="${p.avatarfull}">
+          <div class="o-name">${p.personaname}</div>
+        `;
+        toolbox.appendChild(owner);
+      });
 
-      meta.appendChild(nameEl);
-      meta.appendChild(copiesEl);
-
-      // toolbox (apparait au hover)
-      const toolbox = document.createElement('div');
-      toolbox.className = 'toolbox';
-
-      // ajouter les propriétaires (max 6 visibles, le reste en +N)
-      const maxShow = 6;
-      const ownersToShow = game.owners.slice(0, maxShow);
-      for(const sid of ownersToShow){
-        const p = playersById[sid] || {steamid: sid, personaname: sid, avatarfull: ''};
-        const ownerEl = document.createElement('div');
-        ownerEl.className = 'owner';
-        const aimg = document.createElement('img');
-        aimg.src = p.avatarfull || `https://steamcdn-a.akamaihd.net/steamcommunity/public/images/avatars/00/0000000000000000000000000000000000000000_full.jpg`;
-        aimg.alt = p.personaname;
-        const oname = document.createElement('div');
-        oname.className = 'o-name';
-        oname.textContent = p.personaname;
-        ownerEl.appendChild(aimg);
-        ownerEl.appendChild(oname);
-        toolbox.appendChild(ownerEl);
-      }
-      if(game.owners.length > maxShow){
-        const more = document.createElement('div');
-        more.style.marginLeft = '8px';
-        more.style.color = 'var(--muted)';
-        more.style.fontSize = '13px';
-        more.textContent = `+${game.owners.length - maxShow} autres`;
-        toolbox.appendChild(more);
-      }
-
-      // assembler
       card.appendChild(poster);
       card.appendChild(meta);
       card.appendChild(toolbox);
-
-      gridEl.appendChild(card);
+      grid.appendChild(card);
     }
 
-  } catch(err){
-    console.error(err);
-    loaderEl.style.display = 'none';
-    errorEl.style.display = '';
-    errorEl.textContent = "Erreur : " + (err.message || err);
+  }catch(e){
+    loader.style.display="none";
+    error.style.display="block";
+    error.textContent="Erreur : " + e;
   }
 })();
 </script>
+
 </body>
 </html>
