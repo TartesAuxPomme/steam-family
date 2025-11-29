@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Steam Family Library</title>
+<link rel="icon" type="image/x-icon" href="icon.ico">
 
 <style>
   :root{
@@ -95,6 +96,15 @@
 </header>
 
 <main>
+  <!-- Barre de recherche -->
+  <input id="searchBar" type="text" placeholder="Rechercher un jeu..." style="width:100%;padding:10px;margin-bottom:15px;border-radius:8px;border:none;background:#111a24;color:white;">
+
+  <!-- Filtres -->
+  <label style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
+    <input type="checkbox" id="filterOnlyFamily" checked>
+    Afficher uniquement les jeux partageables
+  </label>
+
   <div id="loader" class="loader">Chargement…</div>
   <div id="error" class="error" style="display:none;"></div>
   <div id="grid" class="grid" style="display:none;"></div>
@@ -110,27 +120,47 @@ const STEAM_IDS = [
   "76561198788807590"
 ];
 
-// ton domaine Render
+// EXCLUSIONS
+const EXCLUSIONS = [4000, 431960, 271590];
+
 const BASE = "https://steam-family.onrender.com/api";
 
-// 🔵 GET PROFILS
 async function getPlayerInfo(ids){
   const r = await fetch(`${BASE}/players?steamids=${ids.join(",")}`);
   if(!r.ok) throw new Error("Échec /api/players : " + r.status);
   return r.json();
 }
 
-// 🔵 GET JEUX D’UN JOUEUR
 async function getOwnedGames(id){
   const r = await fetch(`${BASE}/ownedgames?steamid=${id}`);
   if(!r.ok) throw new Error("Échec /api/ownedgames : " + r.status);
   return r.json();
 }
 
-// 🔵 IMAGE VERTICALE OFFICIELLE STEAM
 function image(appid){
   return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`;
 }
+
+let cachedCards = [];
+
+function applyFilters() {
+  const search = document.getElementById("searchBar").value.toLowerCase();
+  const onlyFamily = document.getElementById("filterOnlyFamily").checked;
+
+  cachedCards.forEach(({card, appid, name}) => {
+    const excluded = EXCLUSIONS.includes(appid);
+    const matchesSearch = name.toLowerCase().includes(search);
+
+    if ((onlyFamily && excluded) || !matchesSearch) {
+      card.style.display = "none";
+    } else {
+      card.style.display = "block";
+    }
+  });
+}
+
+document.getElementById("searchBar").addEventListener("input", applyFilters);
+document.getElementById("filterOnlyFamily").addEventListener("change", applyFilters);
 
 (async()=>{
   const loader=document.getElementById("loader");
@@ -138,12 +168,10 @@ function image(appid){
   const grid=document.getElementById("grid");
 
   try{
-    // 1) Charger profils
     const players = await getPlayerInfo(STEAM_IDS);
     const byId={};
     (players.response.players || []).forEach(p=>byId[p.steamid]=p);
 
-    // 2) Charger bibliothèques
     const libs = await Promise.all(
       STEAM_IDS.map(async id=>{
         const res = await getOwnedGames(id);
@@ -151,7 +179,6 @@ function image(appid){
       })
     );
 
-    // 3) Fusionner en une seule liste {appid : {owners}}
     const combined = new Map();
     for(const lib of libs){
       for(const g of lib.games){
@@ -164,10 +191,12 @@ function image(appid){
     loader.style.display="none";
     grid.style.display="grid";
 
-    // 4) Affichage
     for(const [appid,data] of combined){
+      if (!data.name) continue;
+
       const card=document.createElement("div");
       card.className="game-card";
+      card.dataset.appid = appid;
 
       const poster=document.createElement("div");
       poster.className="poster";
@@ -180,33 +209,4 @@ function image(appid){
         <div class="copies">${data.owners.size} copies</div>
       `;
 
-      const toolbox=document.createElement("div");
-      toolbox.className="toolbox";
-
-      data.owners.forEach(id=>{
-        const p=byId[id] || {personaname:id, avatarfull:""};
-        const owner=document.createElement("div");
-        owner.className="owner";
-        owner.innerHTML=`
-          <img src="${p.avatarfull}">
-          <div class="o-name">${p.personaname}</div>
-        `;
-        toolbox.appendChild(owner);
-      });
-
-      card.appendChild(poster);
-      card.appendChild(meta);
-      card.appendChild(toolbox);
-      grid.appendChild(card);
-    }
-
-  }catch(e){
-    loader.style.display="none";
-    error.style.display="block";
-    error.textContent="Erreur : " + e;
-  }
-})();
-</script>
-
-</body>
-</html>
+      const toolbox=document.createElement("
