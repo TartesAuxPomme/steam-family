@@ -14,6 +14,7 @@
     --accent:#1b8ad1;
     --card-radius:12px;
     --card-gap:18px;
+    --card-size:180px; /* Slider modifie cette valeur */
   }
   html,body{margin:0;font-family:Inter, system-ui;background:var(--bg);color:#e6eef6;}
 
@@ -32,9 +33,22 @@
   h1{margin:0;font-size:18px;font-weight:600;}
 
   main{padding:28px;max-width:1250px;margin:0 auto;}
+
+  /* Slider */
+  .slider-container{
+    margin-bottom:20px;
+    display:flex;
+    align-items:center;
+    gap:15px;
+  }
+  .slider-container span{
+    font-size:14px;
+    color:var(--muted);
+  }
+
   .grid{
     display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(var(--card-size), 1fr));
     gap:var(--card-gap);
   }
 
@@ -58,7 +72,9 @@
     overflow:hidden;
   }
   .poster img{
-    width:100%;height:100%;object-fit:cover;
+    width:100%;
+    height:100%;
+    object-fit:cover;
   }
 
   .meta{text-align:center;padding:10px 6px 14px;}
@@ -66,21 +82,45 @@
   .copies{font-size:13px;color:var(--muted);}
 
   .toolbox{
-    position:absolute;left:10px;right:10px;bottom:12px;
+    position:absolute;
+    left:10px;
+    right:10px;
+    bottom:12px;
     background:rgba(8,12,18,0.9);
-    padding:8px;border-radius:10px;
-    opacity:0;pointer-events:none;
+    padding:8px;
+    border-radius:10px;
+    opacity:0;
+    pointer-events:none;
     transform:translateY(10px);
     transition:.12s;
-    display:flex;gap:8px;flex-wrap:wrap;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
   }
   .game-card:hover .toolbox{
-    opacity:1;pointer-events:auto;transform:translateY(0);
+    opacity:1;
+    pointer-events:auto;
+    transform:translateY(0);
   }
 
-  .owner{display:flex;gap:8px;align-items:center;}
-  .owner img{width:34px;height:34px;border-radius:50%;object-fit:cover;}
-  .o-name{font-size:13px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .owner{
+    display:flex;
+    gap:8px;
+    align-items:center;
+  }
+  .owner img{
+    width:34px;
+    height:34px;
+    border-radius:50%;
+    object-fit:cover;
+  }
+  .o-name{
+    font-size:13px;
+    max-width:90px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
 
   .loader,.error{text-align:center;padding:20px;}
   .error{color:#ffb4b4;}
@@ -96,14 +136,25 @@
 </header>
 
 <main>
-  <!-- Barre de recherche -->
-  <input id="searchBar" type="text" placeholder="Rechercher un jeu..." style="width:100%;padding:10px;margin-bottom:15px;border-radius:8px;border:none;background:#111a24;color:white;">
 
-  <!-- Filtres -->
-  <label style="display:flex;align-items:center;gap:8px;margin-bottom:20px;">
-    <input type="checkbox" id="filterOnlyFamily" checked>
-    Afficher uniquement les jeux partageables
-  </label>
+  <!-- Barre de recherche -->
+  <input id="searchBar" type="text" placeholder="Rechercher un jeu..."
+    style="width:100%;padding:10px;margin-bottom:15px;border-radius:8px;border:none;background:#111a24;color:white;">
+
+  <!-- Slider -->
+  <div class="slider-container">
+    <span>Taille :</span>
+    <input type="range" id="sizeSlider" min="140" max="260" value="180">
+  </div>
+
+  <!-- Tri -->
+  <select id="sortSelect"
+    style="padding:10px;margin-bottom:20px;border-radius:8px;background:#111a24;color:white;border:none;">
+    <option value="az">A → Z</option>
+    <option value="za">Z → A</option>
+    <option value="copiesAsc">Copies ↑</option>
+    <option value="copiesDesc">Copies ↓</option>
+  </select>
 
   <div id="loader" class="loader">Chargement…</div>
   <div id="error" class="error" style="display:none;"></div>
@@ -111,6 +162,8 @@
 </main>
 
 <script>
+/* ---- CONFIG ---- */
+
 const STEAM_IDS = [
   "76561199797208434",
   "76561199428937867",
@@ -120,70 +173,101 @@ const STEAM_IDS = [
   "76561198788807590"
 ];
 
-// EXCLUSIONS
-const EXCLUSIONS = [4000, 431960, 271590];
-
+let EXCLUSIONS = []; // chargé depuis exclusions.json
 const BASE = "https://steam-family.onrender.com/api";
-
-async function getPlayerInfo(ids){
-  const r = await fetch(`${BASE}/players?steamids=${ids.join(",")}`);
-  if(!r.ok) throw new Error("Échec /api/players : " + r.status);
-  return r.json();
-}
-
-async function getOwnedGames(id){
-  const r = await fetch(`${BASE}/ownedgames?steamid=${id}`);
-  if(!r.ok) throw new Error("Échec /api/ownedgames : " + r.status);
-  return r.json();
-}
-
-function image(appid){
-  return `https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg`;
-}
 
 let cachedCards = [];
 
+/* ---- FILTRES ---- */
+
 function applyFilters() {
   const search = document.getElementById("searchBar").value.toLowerCase();
-  const onlyFamily = document.getElementById("filterOnlyFamily").checked;
 
   cachedCards.forEach(({card, appid, name}) => {
     const excluded = EXCLUSIONS.includes(appid);
-    const matchesSearch = name.toLowerCase().includes(search);
-
-    if ((onlyFamily && excluded) || !matchesSearch) {
-      card.style.display = "none";
-    } else {
-      card.style.display = "block";
-    }
+    const matches = name.toLowerCase().includes(search);
+    card.style.display = (!excluded && matches) ? "block" : "none";
   });
 }
 
-document.getElementById("searchBar").addEventListener("input", applyFilters);
-document.getElementById("filterOnlyFamily").addEventListener("change", applyFilters);
+/* ---- TRI ---- */
 
-(async()=>{
-  const loader=document.getElementById("loader");
-  const error=document.getElementById("error");
-  const grid=document.getElementById("grid");
+function applySort() {
+  const value = document.getElementById("sortSelect").value;
+  const grid = document.getElementById("grid");
+  const cards = Array.from(grid.children);
+
+  cards.sort((a,b)=>{
+    const nameA = a.querySelector(".name").textContent.toLowerCase();
+    const nameB = b.querySelector(".name").textContent.toLowerCase();
+
+    const copiesA = parseInt(a.querySelector(".copies").textContent);
+    const copiesB = parseInt(a.querySelector(".copies").textContent);
+
+    switch(value){
+      case "az": return nameA.localeCompare(nameB);
+      case "za": return nameB.localeCompare(nameA);
+      case "copiesAsc": return copiesA - copiesB;
+      case "copiesDesc": return copiesB - copiesA;
+    }
+  });
+
+  cards.forEach(c => grid.appendChild(c));
+}
+
+/* ---- EVENTS ---- */
+
+document.getElementById("searchBar").addEventListener("input", ()=>{
+  applyFilters();
+  applySort();
+});
+
+document.getElementById("sortSelect").addEventListener("change", ()=>{
+  applyFilters();
+  applySort();
+});
+
+document.getElementById("sizeSlider").addEventListener("input", e=>{
+  document.documentElement.style.setProperty("--card-size", e.target.value + "px");
+});
+
+/* ---- CHARGEMENT & AFFICHAGE ---- */
+
+(async ()=>{
+
+  /* Charger exclusions.json */
+  try{
+    const ex = await fetch("exclusions.json");
+    EXCLUSIONS = await ex.json();
+  }catch(e){
+    console.error("Erreur exclusions.json", e);
+  }
+
+  const loader = document.getElementById("loader");
+  const error  = document.getElementById("error");
+  const grid   = document.getElementById("grid");
 
   try{
-    const players = await getPlayerInfo(STEAM_IDS);
-    const byId={};
-    (players.response.players || []).forEach(p=>byId[p.steamid]=p);
+    /* Charger profils */
+    const players = await (await fetch(`${BASE}/players?steamids=${STEAM_IDS.join(",")}`)).json();
+    const byId = {};
+    (players.response.players || []).forEach(p => byId[p.steamid] = p);
 
+    /* Charger jeux */
     const libs = await Promise.all(
       STEAM_IDS.map(async id=>{
-        const res = await getOwnedGames(id);
-        return { id, games: res.response.games || [] };
+        const r = await fetch(`${BASE}/ownedgames?steamid=${id}`);
+        const data = await r.json();
+        return { id, games: data.response.games || [] };
       })
     );
 
+    /* Fusion des jeux */
     const combined = new Map();
     for(const lib of libs){
       for(const g of lib.games){
         if(!combined.has(g.appid))
-          combined.set(g.appid, {name:g.name, owners:new Set()});
+          combined.set(g.appid, {name: g.name, owners:new Set()});
         combined.get(g.appid).owners.add(lib.id);
       }
     }
@@ -191,22 +275,66 @@ document.getElementById("filterOnlyFamily").addEventListener("change", applyFilt
     loader.style.display="none";
     grid.style.display="grid";
 
+    /* Génération des cartes */
     for(const [appid,data] of combined){
       if (!data.name) continue;
 
-      const card=document.createElement("div");
-      card.className="game-card";
-      card.dataset.appid = appid;
+      const card = document.createElement("div");
+      card.className = "game-card";
 
-      const poster=document.createElement("div");
-      poster.className="poster";
-      poster.innerHTML=`<img src="${image(appid)}">`;
+      const poster = document.createElement("div");
+      poster.className = "poster";
+      poster.innerHTML =
+        `<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${appid}/library_600x900.jpg">`;
 
-      const meta=document.createElement("div");
-      meta.className="meta";
-      meta.innerHTML=`
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML = `
         <div class="name">${data.name}</div>
         <div class="copies">${data.owners.size} copies</div>
       `;
 
-      const toolbox=document.createElement("
+      const toolbox = document.createElement("div");
+      toolbox.className = "toolbox";
+
+      data.owners.forEach(id=>{
+        const p = byId[id] || { personaname:id, avatarfull:"" };
+        const owner = document.createElement("div");
+        owner.className = "owner";
+        owner.innerHTML = `
+          <img src="${p.avatarfull}">
+          <div class="o-name">${p.personaname}</div>
+        `;
+        toolbox.appendChild(owner);
+      });
+
+      /* Attacher */
+      card.appendChild(poster);
+      card.appendChild(meta);
+      card.appendChild(toolbox);
+      grid.appendChild(card);
+
+      /* Stocker pour filtres */
+      cachedCards.push({
+        card,
+        appid: Number(appid),
+        name: data.name
+      });
+    }
+
+    /* Appliquer filtres & tri */
+    applyFilters();
+    applySort();
+
+  }catch(e){
+    console.error(e);
+    loader.style.display="none";
+    error.style.display="block";
+    error.textContent = "Erreur : " + e;
+  }
+
+})();
+</script>
+
+</body>
+</html>
