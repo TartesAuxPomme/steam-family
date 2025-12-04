@@ -19,14 +19,21 @@
   }
   html,body{margin:0;font-family:Inter, system-ui;background:var(--bg);color:#e6eef6;}
 
-  header{display:flex;align-items:center;gap:16px;padding:20px 28px;border-bottom:1px solid rgba(255,255,255,0.04);}
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 28px;border-bottom:1px solid rgba(255,255,255,0.04);}
   .logo{display:flex;gap:12px;align-items:center;}
   .logo .mark{width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,var(--accent),#0b67a4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:white;}
   h1{margin:0;font-size:18px;font-weight:600;}
 
+  .online-players{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .online-player{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.05);border-radius:8px;min-width:80px;}
+  .online-player img{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--avatar-placeholder);}
+  .online-player .status{font-size:11px;color:#5cb85c;font-weight:600;}
+  .online-player .game-name{font-size:10px;color:var(--muted);text-align:center;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
   main{padding:28px;max-width:1250px;margin:0 auto;}
 
-  .slider-container{margin-bottom:20px;display:flex;align-items:center;gap:15px;}
+  .controls{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+  .slider-container{display:flex;align-items:center;gap:15px;}
   .slider-container span{font-size:14px;color:var(--muted);}
 
   .grid{display:grid;grid-template-columns: repeat(auto-fill, minmax(var(--card-size), 1fr));gap:var(--card-gap);}
@@ -50,6 +57,9 @@
 
   .loader,.error{text-align:center;padding:20px;}
   .error{color:#ffb4b4;}
+
+  select, input[type="text"]{padding:10px;border-radius:8px;background:#111a24;color:white;border:none;}
+  input[type="text"]{width:100%;margin-bottom:15px;}
 </style>
 </head>
 
@@ -59,25 +69,30 @@
     <div class="mark">SF</div>
     <h1>Steam Family Library</h1>
   </div>
+  <div id="onlinePlayers" class="online-players"></div>
 </header>
 
 <main>
 
-  <input id="searchBar" type="text" placeholder="Rechercher un jeu..."
-    style="width:100%;padding:10px;margin-bottom:15px;border-radius:8px;border:none;background:#111a24;color:white;">
+  <input id="searchBar" type="text" placeholder="Rechercher un jeu...">
 
-  <div class="slider-container">
-    <span>Taille :</span>
-    <input type="range" id="sizeSlider" min="140" max="260" value="180">
+  <div class="controls">
+    <div class="slider-container">
+      <span>Taille :</span>
+      <input type="range" id="sizeSlider" min="140" max="260" value="180">
+    </div>
+
+    <select id="sortSelect">
+      <option value="az">A → Z</option>
+      <option value="za">Z → A</option>
+      <option value="copiesAsc">Copies ↑</option>
+      <option value="copiesDesc">Copies ↓</option>
+    </select>
+
+    <select id="ownerFilter">
+      <option value="all">Tous les jeux</option>
+    </select>
   </div>
-
-  <select id="sortSelect"
-    style="padding:10px;margin-bottom:20px;border-radius:8px;background:#111a24;color:white;border:none;">
-    <option value="az">A → Z</option>
-    <option value="za">Z → A</option>
-    <option value="copiesAsc">Copies ↑</option>
-    <option value="copiesDesc">Copies ↓</option>
-  </select>
 
   <div id="loader" class="loader">Chargement…</div>
   <div id="error" class="error" style="display:none;"></div>
@@ -96,9 +111,9 @@ const STEAM_IDS = [
 ];
 
 const BASE = "https://steam-family.onrender.com/api";
-let EXCLUSIONS = [];        // chargé depuis exclusions.json
-let cachedCards = [];       // { card, appid, name }
-let displayedSet = new Set(); // pour éviter doublons
+let EXCLUSIONS = [];
+let allGames = [];  // Stocke TOUS les jeux avec leurs données complètes
+let playersData = {};
 
 /* ------------- localStorage helpers ------------- */
 function loadFromCache() {
@@ -111,17 +126,24 @@ function saveToCache(data) {
   localStorage.setItem("steamFamilyCache", JSON.stringify(data));
 }
 
-/* sameData: compare arrays of objects {appid,name,owners(array)} */
+function loadPlayersCache() {
+  try {
+    const s = localStorage.getItem("steamPlayersCache");
+    return s ? JSON.parse(s) : null;
+  } catch { return null; }
+}
+function savePlayersCache(data) {
+  localStorage.setItem("steamPlayersCache", JSON.stringify(data));
+}
+
 function sameData(a, b) {
   if (!a || !b) return false;
   if (a.length !== b.length) return false;
-  // compare sorted by appid
   const sa = [...a].sort((x,y)=> (x.appid - y.appid));
   const sb = [...b].sort((x,y)=> (x.appid - y.appid));
   for (let i=0;i<sa.length;i++) {
     if (sa[i].appid !== sb[i].appid) return false;
     if (sa[i].name !== sb[i].name) return false;
-    // owners arrays: compare lengths then sorted elements
     const oa = (sa[i].owners || []).slice().map(String).sort();
     const ob = (sb[i].owners || []).slice().map(String).sort();
     if (oa.length !== ob.length) return false;
@@ -145,221 +167,255 @@ function createOwnerElement(personaname, avatarUrl) {
   return owner;
 }
 
-/* ------------- Filters / Sort / Slider ------------- */
-function applyFilters() {
-  const search = document.getElementById("searchBar").value.toLowerCase();
-  cachedCards.forEach(({card, appid, name}) => {
-    const excluded = EXCLUSIONS.includes(appid);
-    const matches = name.toLowerCase().includes(search);
-    card.style.display = (!excluded && matches) ? "block" : "none";
-  });
+function createGameCard(game) {
+  const card = document.createElement("div");
+  card.className = "game-card";
+  card.dataset.appid = String(game.appid);
+
+  const poster = document.createElement("div");
+  poster.className = "poster";
+  poster.innerHTML = `<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/library_600x900.jpg">`;
+
+  const meta = document.createElement("div");
+  meta.className = "meta";
+  meta.innerHTML = `<div class="name">${game.name}</div><div class="copies">${game.owners.length} copies</div>`;
+
+  const toolbox = document.createElement("div");
+  toolbox.className = "toolbox";
+  
+  for (const ownerId of game.owners) {
+    const player = playersData[ownerId];
+    const avatar = player ? (player.avatarfull || "") : "";
+    const name = player ? (player.personaname || ownerId) : ownerId;
+    toolbox.appendChild(createOwnerElement(name, avatar));
+  }
+
+  card.appendChild(poster);
+  card.appendChild(meta);
+  card.appendChild(toolbox);
+  
+  return card;
 }
 
-function applySort() {
-  const value = document.getElementById("sortSelect").value;
+/* ------------- Render Grid ------------- */
+function renderGrid() {
   const grid = document.getElementById("grid");
-  const cards = Array.from(grid.children);
-  cards.sort((a,b)=>{
-    const nameA = a.querySelector(".name").textContent.toLowerCase();
-    const nameB = b.querySelector(".name").textContent.toLowerCase();
-    const copiesA = parseInt(a.querySelector(".copies").textContent) || 0;
-    const copiesB = parseInt(b.querySelector(".copies").textContent) || 0;
-    switch(value){
+  const search = document.getElementById("searchBar").value.toLowerCase();
+  const ownerFilter = document.getElementById("ownerFilter").value;
+  const sortValue = document.getElementById("sortSelect").value;
+
+  // 1. Filtrer les jeux
+  let filteredGames = allGames.filter(game => {
+    // TOUJOURS exclure les jeux dans EXCLUSIONS
+    if (EXCLUSIONS.includes(game.appid)) {
+      return false;
+    }
+    
+    // Filtre de recherche
+    if (search && !game.name.toLowerCase().includes(search)) {
+      return false;
+    }
+    
+    // Filtre par propriétaire
+    if (ownerFilter !== "all" && !game.owners.includes(ownerFilter)) {
+      return false;
+    }
+    
+    return true;
+  });
+
+  // 2. Trier les jeux
+  filteredGames.sort((a, b) => {
+    const nameA = a.name.toLowerCase();
+    const nameB = b.name.toLowerCase();
+    const copiesA = a.owners.length;
+    const copiesB = b.owners.length;
+    
+    switch(sortValue) {
       case "az": return nameA.localeCompare(nameB);
       case "za": return nameB.localeCompare(nameA);
       case "copiesAsc": return copiesA - copiesB;
       case "copiesDesc": return copiesB - copiesA;
+      default: return 0;
     }
   });
-  cards.forEach(c=> grid.appendChild(c));
+
+  // 3. Vider et recréer la grille
+  grid.innerHTML = "";
+  
+  for (const game of filteredGames) {
+    const card = createGameCard(game);
+    grid.appendChild(card);
+  }
 }
 
-document.getElementById("sizeSlider").addEventListener("input", e=>{
+/* ------------- Event Listeners ------------- */
+document.getElementById("sizeSlider").addEventListener("input", e => {
   document.documentElement.style.setProperty("--card-size", e.target.value + "px");
 });
-document.getElementById("searchBar").addEventListener("input", ()=>{ applyFilters(); applySort(); });
-document.getElementById("sortSelect").addEventListener("change", ()=>{ applyFilters(); applySort(); });
+
+document.getElementById("searchBar").addEventListener("input", renderGrid);
+document.getElementById("sortSelect").addEventListener("change", renderGrid);
+document.getElementById("ownerFilter").addEventListener("change", renderGrid);
+
+/* ------------- Online Players Display ------------- */
+function updateOnlinePlayers(players) {
+  const container = document.getElementById("onlinePlayers");
+  container.innerHTML = "";
+  
+  const online = players.filter(p => p.personastate && p.personastate !== 0);
+  
+  online.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "online-player";
+    
+    const img = document.createElement("img");
+    img.src = p.avatarfull || p.avatar || "";
+    img.alt = p.personaname;
+    
+    const status = document.createElement("div");
+    status.className = "status";
+    status.textContent = "En ligne";
+    
+    div.appendChild(img);
+    div.appendChild(status);
+    
+    if (p.gameextrainfo) {
+      const gameName = document.createElement("div");
+      gameName.className = "game-name";
+      gameName.textContent = p.gameextrainfo;
+      div.appendChild(gameName);
+    }
+    
+    container.appendChild(div);
+  });
+}
+
+/* ------------- Populate Owner Filter ------------- */
+function populateOwnerFilter(players) {
+  const select = document.getElementById("ownerFilter");
+  select.innerHTML = '<option value="all">Tous les jeux</option>';
+  
+  players.forEach(p => {
+    const option = document.createElement("option");
+    option.value = p.steamid;
+    option.textContent = `Jeux de ${p.personaname}`;
+    select.appendChild(option);
+  });
+}
 
 /* ------------- Main flow ------------- */
-(async ()=>{
-
+(async () => {
   const loader = document.getElementById("loader");
-  const error  = document.getElementById("error");
-  const grid   = document.getElementById("grid");
+  const error = document.getElementById("error");
+  const grid = document.getElementById("grid");
 
-  // 1) load exclusions.json first
+  // 1) Charger exclusions.json
   try {
     const exRes = await fetch("exclusions.json");
     EXCLUSIONS = await exRes.json();
     if (!Array.isArray(EXCLUSIONS)) EXCLUSIONS = [];
+    console.log("Exclusions chargées:", EXCLUSIONS);
   } catch(e) {
     console.error("Erreur exclusions.json:", e);
     EXCLUSIONS = [];
   }
 
-  // 2) try to load cache
+  // 2) Charger le cache des jeux
   let cached = loadFromCache();
   if (cached && Array.isArray(cached)) {
-    // ensure numbers
-    cached = cached.map(it => ({ appid: Number(it.appid), name: it.name, owners: Array.isArray(it.owners) ? it.owners.map(String) : [] }));
-    // remove excluded from cache
-    cached = cached.filter(item => !EXCLUSIONS.includes(item.appid));
-  } else {
-    cached = null;
+    cached = cached.map(it => ({ 
+      appid: Number(it.appid), 
+      name: it.name, 
+      owners: Array.isArray(it.owners) ? it.owners.map(String) : [] 
+    }));
+    allGames = cached;
   }
 
-  // 3) render cache immediately (if any)
-  if (cached) {
+  // 3) Charger le cache des joueurs
+  let cachedPlayers = loadPlayersCache();
+  if (cachedPlayers && Array.isArray(cachedPlayers)) {
+    cachedPlayers.forEach(p => playersData[p.steamid] = p);
+    populateOwnerFilter(cachedPlayers);
+    updateOnlinePlayers(cachedPlayers);
+  }
+
+  // 4) Afficher le cache si disponible
+  if (allGames.length > 0) {
     loader.style.display = "none";
     grid.style.display = "grid";
-
-    for (const item of cached) {
-      // avoid double display
-      if (displayedSet.has(Number(item.appid))) continue;
-      displayedSet.add(Number(item.appid));
-
-      const card = document.createElement("div");
-      card.className = "game-card";
-      card.dataset.appid = String(item.appid);
-
-      const poster = document.createElement("div");
-      poster.className = "poster";
-      poster.innerHTML = `<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${item.appid}/library_600x900.jpg">`;
-
-      const meta = document.createElement("div");
-      meta.className = "meta";
-      meta.innerHTML = `<div class="name">${item.name}</div><div class="copies">${(item.owners||[]).length} copies</div>`;
-
-      const toolbox = document.createElement("div");
-      toolbox.className = "toolbox";
-      // populate toolbox with placeholders for owners (we'll replace with real avatars once players loaded)
-      for (const ownerId of (item.owners || [])) {
-        // show placeholder owner until real avatars available
-        const placeholder = createOwnerElement(ownerId, "");
-        toolbox.appendChild(placeholder);
-      }
-
-      card.appendChild(poster);
-      card.appendChild(meta);
-      card.appendChild(toolbox);
-      grid.appendChild(card);
-
-      cachedCards.push({ card, appid: Number(item.appid), name: item.name });
-    }
-
-    applyFilters();
-    applySort();
+    renderGrid();
   }
 
-  // 4) load Steam data (players + ownedgames)
+  // 5) Charger les données Steam
   try {
-    // players
+    // Charger les joueurs
     const playersRes = await fetch(`${BASE}/players?steamids=${STEAM_IDS.join(",")}`);
     const playersJson = await playersRes.json();
     const players = (playersJson.response && playersJson.response.players) ? playersJson.response.players : [];
 
-    const byId = {};
-    players.forEach(p => byId[p.steamid] = p);
+    playersData = {};
+    players.forEach(p => playersData[p.steamid] = p);
 
-    // libs
-    const libs = await Promise.all(STEAM_IDS.map(async id=>{
+    // Sauvegarder les joueurs
+    savePlayersCache(players);
+    
+    // Mettre à jour l'affichage des joueurs en ligne
+    updateOnlinePlayers(players);
+    
+    // Mettre à jour le filtre par propriétaire
+    populateOwnerFilter(players);
+
+    // Charger les bibliothèques
+    const libs = await Promise.all(STEAM_IDS.map(async id => {
       const r = await fetch(`${BASE}/ownedgames?steamid=${id}`);
       const data = await r.json();
       return { id, games: data.response && data.response.games ? data.response.games : [] };
     }));
 
-    // build combined (apply exclusions)
-    const combined = new Map();
+    // Construire la liste complète des jeux
+    const gamesMap = new Map();
     for (const lib of libs) {
       for (const g of lib.games) {
         if (!g || !g.appid) continue;
         const appidNum = Number(g.appid);
-        if (EXCLUSIONS.includes(appidNum)) continue;
-        if (!combined.has(appidNum)) combined.set(appidNum, { name: g.name || ("App " + appidNum), owners: new Set() });
-        combined.get(appidNum).owners.add(lib.id);
+        
+        if (!gamesMap.has(appidNum)) {
+          gamesMap.set(appidNum, { 
+            appid: appidNum,
+            name: g.name || ("App " + appidNum), 
+            owners: []
+          });
+        }
+        gamesMap.get(appidNum).owners.push(lib.id);
       }
     }
 
-    // prepare final cache array with owners list (array of steamids)
-    const finalArray = [];
-    for (const [appid, data] of combined) {
-      finalArray.push({ appid: Number(appid), name: data.name, owners: Array.from(data.owners).map(String) });
-    }
+    // Convertir en tableau
+    const finalArray = Array.from(gamesMap.values());
+    allGames = finalArray;
 
-    // compare & save cache if different
+    // Sauvegarder le cache si différent
     const oldCache = loadFromCache();
-    // normalize oldCache to same shape if present
-    const normOld = oldCache ? oldCache.map(it => ({ appid: Number(it.appid), name: it.name, owners: Array.isArray(it.owners) ? it.owners.map(String) : [] })) : null;
+    const normOld = oldCache ? oldCache.map(it => ({ 
+      appid: Number(it.appid), 
+      name: it.name, 
+      owners: Array.isArray(it.owners) ? it.owners.map(String) : [] 
+    })) : null;
+    
     if (!sameData(normOld, finalArray)) {
-      try { saveToCache(finalArray); console.log("Cache mis à jour"); } catch(e){ console.warn("Impossible de sauver cache:", e); }
+      try { 
+        saveToCache(finalArray); 
+        console.log("Cache mis à jour"); 
+      } catch(e) { 
+        console.warn("Impossible de sauver cache:", e); 
+      }
     }
 
-    // Now: display/update games from combined
+    // Afficher les jeux
     loader.style.display = "none";
     grid.style.display = "grid";
-
-    for (const [appid, data] of combined) {
-      const appNum = Number(appid);
-
-      // if already displayed from cache -> update copies and toolbox
-      const exists = cachedCards.find(c => Number(c.appid) === appNum);
-      if (exists) {
-        const card = exists.card;
-        // update copies text
-        const copiesEl = card.querySelector(".copies");
-        if (copiesEl) copiesEl.textContent = data.owners.size + " copies";
-
-        // rebuild toolbox with real player avatars/names (clear first)
-        const toolbox = card.querySelector(".toolbox");
-        if (toolbox) {
-          toolbox.innerHTML = "";
-          for (const ownerId of data.owners) {
-            const p = byId[ownerId];
-            const avatar = p ? (p.avatarfull || "") : "";
-            const name = p ? (p.personaname || ownerId) : ownerId;
-            toolbox.appendChild(createOwnerElement(name, avatar));
-          }
-        }
-        // ensure cachedCards entry updated name if changed
-        exists.name = data.name;
-      } else {
-        // not in cache -> create new card
-        if (displayedSet.has(appNum)) continue; // safety
-        displayedSet.add(appNum);
-
-        const card = document.createElement("div");
-        card.className = "game-card";
-        card.dataset.appid = String(appNum);
-
-        const poster = document.createElement("div");
-        poster.className = "poster";
-        poster.innerHTML = `<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${appNum}/library_600x900.jpg">`;
-
-        const meta = document.createElement("div");
-        meta.className = "meta";
-        meta.innerHTML = `<div class="name">${data.name}</div><div class="copies">${data.owners.size} copies</div>`;
-
-        const toolbox = document.createElement("div");
-        toolbox.className = "toolbox";
-        for (const ownerId of data.owners) {
-          const p = byId[ownerId];
-          const avatar = p ? (p.avatarfull || "") : "";
-          const name = p ? (p.personaname || ownerId) : ownerId;
-          toolbox.appendChild(createOwnerElement(name, avatar));
-        }
-
-        card.appendChild(poster);
-        card.appendChild(meta);
-        card.appendChild(toolbox);
-        grid.appendChild(card);
-
-        cachedCards.push({ card, appid: appNum, name: data.name });
-      }
-    }
-
-    // final filters & sort
-    applyFilters();
-    applySort();
+    renderGrid();
 
   } catch (err) {
     console.error("Erreur chargement Steam:", err);
