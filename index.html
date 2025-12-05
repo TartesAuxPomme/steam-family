@@ -1,431 +1,121 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Steam Family Library</title>
 <link rel="icon" type="image/x-icon" href="icon.ico">
-
 <style>
-  :root{
-    --bg:#0b1218;
-    --panel:#111a24;
-    --muted:#8fa3b7;
-    --accent:#1b8ad1;
-    --card-radius:12px;
-    --card-gap:18px;
-    --card-size:180px;
-    --avatar-placeholder: #223;
-  }
-  html,body{margin:0;font-family:Inter, system-ui;background:var(--bg);color:#e6eef6;}
-
-  header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 28px;border-bottom:1px solid rgba(255,255,255,0.04);}
-  .logo{display:flex;gap:12px;align-items:center;}
-  .logo .mark{width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,var(--accent),#0b67a4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:white;}
-  h1{margin:0;font-size:18px;font-weight:600;}
-
-  .online-players{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
-  .online-player{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.05);border-radius:8px;min-width:80px;}
-  .online-player img{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--avatar-placeholder);}
-  .online-player .status{font-size:11px;color:#5cb85c;font-weight:600;}
-  .online-player .game-name{font-size:10px;color:var(--muted);text-align:center;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-  main{padding:28px;max-width:1250px;margin:0 auto;}
-
-  .controls{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
-  .slider-container{display:flex;align-items:center;gap:15px;}
-  .slider-container span{font-size:14px;color:var(--muted);}
-
-  .grid{display:grid;grid-template-columns: repeat(auto-fill, minmax(var(--card-size), 1fr));gap:var(--card-gap);}
-
-  .game-card{background:rgba(255,255,255,0.03);border-radius:var(--card-radius);padding:8px;position:relative;transition:transform .12s, box-shadow .12s;cursor:pointer;}
-  .game-card:hover{transform:translateY(-6px);box-shadow:0 10px 30px rgba(2,8,20,0.6);}
-
-  .poster{width:100%;aspect-ratio:2/3;border-radius:10px;overflow:hidden;}
-  .poster img{width:100%;height:100%;object-fit:cover;display:block;}
-
-  .meta{text-align:center;padding:10px 6px 14px;}
-  .name{font-weight:600;font-size:14px;margin-bottom:8px;}
-  .copies{font-size:13px;color:var(--muted);}
-
-  .toolbox{position:absolute;left:10px;right:10px;bottom:12px;background:rgba(8,12,18,0.9);padding:8px;border-radius:10px;opacity:0;pointer-events:none;transform:translateY(10px);transition:.12s;display:flex;gap:8px;flex-wrap:wrap;}
-  .game-card:hover .toolbox{opacity:1;pointer-events:auto;transform:translateY(0);}
-
-  .owner{display:flex;gap:8px;align-items:center;}
-  .owner img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--avatar-placeholder);}
-  .o-name{font-size:13px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-
-  .loader,.error{text-align:center;padding:20px;}
-  .error{color:#ffb4b4;}
-
-  select, input[type="text"]{padding:10px;border-radius:8px;background:#111a24;color:white;border:none;}
-  input[type="text"]{width:100%;margin-bottom:15px;}
+:root{--bg:#0b1218;--panel:#111a24;--muted:#8fa3b7;--accent:#1b8ad1;--card-radius:12px;--card-gap:18px;--card-size:180px;--avatar-placeholder:#223}
+html,body{margin:0;font-family:Inter,system-ui;background:var(--bg);color:#e6eef6}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:20px 28px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.logo{display:flex;gap:12px;align-items:center}
+.logo .mark{width:44px;height:44px;border-radius:8px;background:linear-gradient(180deg,var(--accent),#0b67a4);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff}
+h1{margin:0;font-size:18px;font-weight:600}
+.online-players{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.online-player{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 12px;background:rgba(255,255,255,0.05);border-radius:8px;min-width:80px}
+.online-player img{width:40px;height:40px;border-radius:50%;object-fit:cover;background:var(--avatar-placeholder)}
+.online-player .status{font-size:11px;color:#5cb85c;font-weight:600}
+.online-player .game-name{font-size:10px;color:var(--muted);text-align:center;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+main{padding:28px;max-width:1250px;margin:0 auto}
+.controls{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap;align-items:center}
+.slider-container{display:flex;align-items:center;gap:15px}
+.slider-container span{font-size:14px;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--card-size),1fr));gap:var(--card-gap)}
+.game-card{background:rgba(255,255,255,0.03);border-radius:var(--card-radius);padding:8px;position:relative;transition:transform .12s,box-shadow .12s;cursor:pointer}
+.game-card:hover{transform:translateY(-6px);box-shadow:0 10px 30px rgba(2,8,20,0.6)}
+.poster{width:100%;aspect-ratio:2/3;border-radius:10px;overflow:hidden}
+.poster img{width:100%;height:100%;object-fit:cover;display:block}
+.meta{text-align:center;padding:10px 6px 14px}
+.name{font-weight:600;font-size:14px;margin-bottom:8px}
+.copies{font-size:13px;color:var(--muted)}
+.toolbox{position:absolute;left:10px;right:10px;bottom:12px;background:rgba(8,12,18,0.9);padding:8px;border-radius:10px;opacity:0;pointer-events:none;transform:translateY(10px);transition:.12s;display:flex;gap:8px;flex-wrap:wrap}
+.game-card:hover .toolbox{opacity:1;pointer-events:auto;transform:translateY(0)}
+.owner{display:flex;gap:8px;align-items:center}
+.owner img{width:34px;height:34px;border-radius:50%;object-fit:cover;background:var(--avatar-placeholder)}
+.o-name{font-size:13px;max-width:90px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loader,.error{text-align:center;padding:20px}
+.error{color:#ffb4b4}
+select,input[type="text"]{padding:10px;border-radius:8px;background:#111a24;color:#fff;border:none}
+input[type="text"]{width:100%;margin-bottom:15px}
+.roulette-container{text-align:center;padding:60px 20px;margin-top:40px}
+.roulette-btn{padding:16px 32px;background:linear-gradient(135deg,var(--accent),#0b67a4);border:none;border-radius:12px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(27,138,209,0.4);transition:all .2s}
+.roulette-btn:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(27,138,209,0.6)}
+.roulette-btn:active{transform:translateY(0)}
+.roulette-modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:2000;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.roulette-modal.active{display:flex}
+.roulette-content{background:var(--panel);border-radius:16px;padding:40px 20px;max-width:90%;width:500px;text-align:center;animation:slideIn .3s;margin:auto}
+@keyframes slideIn{from{transform:translateY(-30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.roulette-game-poster{width:100%;max-width:300px;aspect-ratio:2/3;margin:20px auto;border-radius:12px;overflow:hidden;box-shadow:0 10px 40px rgba(0,0,0,0.5)}
+.roulette-game-poster img{width:100%;height:100%;object-fit:cover}
+.roulette-game-name{font-size:24px;font-weight:700;margin:20px 0;word-wrap:break-word}
+.roulette-owners{display:flex;gap:12px;justify-content:center;margin:20px 0;flex-wrap:wrap}
+.close-modal{background:rgba(255,255,255,0.1);border:none;padding:12px 24px;border-radius:8px;color:#fff;font-size:14px;cursor:pointer;margin-top:20px}
+.close-modal:hover{background:rgba(255,255,255,0.2)}
+@media (max-width:768px){.roulette-content{padding:30px 15px}.roulette-game-name{font-size:20px}.roulette-game-poster{max-width:250px}}
 </style>
 </head>
-
 <body>
 <header>
-  <div class="logo">
-    <div class="mark">SF</div>
-    <h1>Steam Family Library</h1>
-  </div>
-  <div id="onlinePlayers" class="online-players"></div>
+<div class="logo">
+<div class="mark">SF</div>
+<h1>Steam Family Library</h1>
+</div>
+<div id="onlinePlayers" class="online-players"></div>
 </header>
-
 <main>
-
-  <input id="searchBar" type="text" placeholder="Rechercher un jeu...">
-
-  <div class="controls">
-    <div class="slider-container">
-      <span>Taille :</span>
-      <input type="range" id="sizeSlider" min="140" max="260" value="180">
-    </div>
-
-    <select id="sortSelect">
-      <option value="az">A → Z</option>
-      <option value="za">Z → A</option>
-      <option value="copiesAsc">Copies ↑</option>
-      <option value="copiesDesc">Copies ↓</option>
-    </select>
-
-    <select id="ownerFilter">
-      <option value="all">Tous les jeux</option>
-    </select>
-  </div>
-
-  <div id="loader" class="loader">Chargement…</div>
-  <div id="error" class="error" style="display:none;"></div>
-  <div id="grid" class="grid" style="display:none;"></div>
+<input id="searchBar" type="text" placeholder="Rechercher un jeu...">
+<div class="controls">
+<div class="slider-container">
+<span>Taille :</span>
+<input type="range" id="sizeSlider" min="140" max="260" value="180">
+</div>
+<select id="sortSelect">
+<option value="az">A → Z</option>
+<option value="za">Z → A</option>
+<option value="copiesAsc">Copies ↑</option>
+<option value="copiesDesc">Copies ↓</option>
+</select>
+<select id="ownerFilter">
+<option value="all">Tous les jeux</option>
+</select>
+</div>
+<div id="loader" class="loader">Chargement…</div>
+<div id="error" class="error" style="display:none;"></div>
+<div id="grid" class="grid" style="display:none;"></div>
+<div class="roulette-container">
+<button class="roulette-btn" id="rouletteBtn">🎲 Jeu Aléatoire</button>
+</div>
 </main>
-
+<div class="roulette-modal" id="rouletteModal">
+<div class="roulette-content">
+<h2>🎲 Jeu Aléatoire</h2>
+<div class="roulette-game-poster" id="modalPoster"></div>
+<div class="roulette-game-name" id="modalName"></div>
+<div class="roulette-owners" id="modalOwners"></div>
+<button class="close-modal" id="closeModal">Fermer</button>
+</div>
+</div>
 <script>
-/* ---------------- CONFIG ---------------- */
-const STEAM_IDS = [
-  "76561199797208434",
-  "76561199428937867",
-  "76561199208559725",
-  "76561198342426856",
-  "76561199683287336",
-  "76561198788807590"
-];
-
-const BASE = "https://steam-family.onrender.com/api";
-let EXCLUSIONS = [];
-let allGames = [];  // Stocke TOUS les jeux avec leurs données complètes
-let playersData = {};
-
-/* ------------- localStorage helpers ------------- */
-function loadFromCache() {
-  try {
-    const s = localStorage.getItem("steamFamilyCache");
-    return s ? JSON.parse(s) : null;
-  } catch { return null; }
-}
-function saveToCache(data) {
-  localStorage.setItem("steamFamilyCache", JSON.stringify(data));
-}
-
-function loadPlayersCache() {
-  try {
-    const s = localStorage.getItem("steamPlayersCache");
-    return s ? JSON.parse(s) : null;
-  } catch { return null; }
-}
-function savePlayersCache(data) {
-  localStorage.setItem("steamPlayersCache", JSON.stringify(data));
-}
-
-function sameData(a, b) {
-  if (!a || !b) return false;
-  if (a.length !== b.length) return false;
-  const sa = [...a].sort((x,y)=> (x.appid - y.appid));
-  const sb = [...b].sort((x,y)=> (x.appid - y.appid));
-  for (let i=0;i<sa.length;i++) {
-    if (sa[i].appid !== sb[i].appid) return false;
-    if (sa[i].name !== sb[i].name) return false;
-    const oa = (sa[i].owners || []).slice().map(String).sort();
-    const ob = (sb[i].owners || []).slice().map(String).sort();
-    if (oa.length !== ob.length) return false;
-    for (let j=0;j<oa.length;j++) if (oa[j] !== ob[j]) return false;
-  }
-  return true;
-}
-
-/* ------------- UI helpers ------------- */
-function createOwnerElement(personaname, avatarUrl) {
-  const owner = document.createElement("div");
-  owner.className = "owner";
-  const img = document.createElement("img");
-  img.src = avatarUrl || "";
-  img.alt = personaname || "";
-  const nm = document.createElement("div");
-  nm.className = "o-name";
-  nm.textContent = personaname || "";
-  owner.appendChild(img);
-  owner.appendChild(nm);
-  return owner;
-}
-
-function createGameCard(game) {
-  const card = document.createElement("div");
-  card.className = "game-card";
-  card.dataset.appid = String(game.appid);
-
-  const poster = document.createElement("div");
-  poster.className = "poster";
-  poster.innerHTML = `<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${game.appid}/library_600x900.jpg">`;
-
-  const meta = document.createElement("div");
-  meta.className = "meta";
-  meta.innerHTML = `<div class="name">${game.name}</div><div class="copies">${game.owners.length} copies</div>`;
-
-  const toolbox = document.createElement("div");
-  toolbox.className = "toolbox";
-  
-  for (const ownerId of game.owners) {
-    const player = playersData[ownerId];
-    const avatar = player ? (player.avatarfull || "") : "";
-    const name = player ? (player.personaname || ownerId) : ownerId;
-    toolbox.appendChild(createOwnerElement(name, avatar));
-  }
-
-  card.appendChild(poster);
-  card.appendChild(meta);
-  card.appendChild(toolbox);
-  
-  return card;
-}
-
-/* ------------- Render Grid ------------- */
-function renderGrid() {
-  const grid = document.getElementById("grid");
-  const search = document.getElementById("searchBar").value.toLowerCase();
-  const ownerFilter = document.getElementById("ownerFilter").value;
-  const sortValue = document.getElementById("sortSelect").value;
-
-  // 1. Filtrer les jeux
-  let filteredGames = allGames.filter(game => {
-    // TOUJOURS exclure les jeux dans EXCLUSIONS
-    if (EXCLUSIONS.includes(game.appid)) {
-      return false;
-    }
-    
-    // Filtre de recherche
-    if (search && !game.name.toLowerCase().includes(search)) {
-      return false;
-    }
-    
-    // Filtre par propriétaire
-    if (ownerFilter !== "all" && !game.owners.includes(ownerFilter)) {
-      return false;
-    }
-    
-    return true;
-  });
-
-  // 2. Trier les jeux
-  filteredGames.sort((a, b) => {
-    const nameA = a.name.toLowerCase();
-    const nameB = b.name.toLowerCase();
-    const copiesA = a.owners.length;
-    const copiesB = b.owners.length;
-    
-    switch(sortValue) {
-      case "az": return nameA.localeCompare(nameB);
-      case "za": return nameB.localeCompare(nameA);
-      case "copiesAsc": return copiesA - copiesB;
-      case "copiesDesc": return copiesB - copiesA;
-      default: return 0;
-    }
-  });
-
-  // 3. Vider et recréer la grille
-  grid.innerHTML = "";
-  
-  for (const game of filteredGames) {
-    const card = createGameCard(game);
-    grid.appendChild(card);
-  }
-}
-
-/* ------------- Event Listeners ------------- */
-document.getElementById("sizeSlider").addEventListener("input", e => {
-  document.documentElement.style.setProperty("--card-size", e.target.value + "px");
-});
-
-document.getElementById("searchBar").addEventListener("input", renderGrid);
-document.getElementById("sortSelect").addEventListener("change", renderGrid);
-document.getElementById("ownerFilter").addEventListener("change", renderGrid);
-
-/* ------------- Online Players Display ------------- */
-function updateOnlinePlayers(players) {
-  const container = document.getElementById("onlinePlayers");
-  container.innerHTML = "";
-  
-  const online = players.filter(p => p.personastate && p.personastate !== 0);
-  
-  online.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "online-player";
-    
-    const img = document.createElement("img");
-    img.src = p.avatarfull || p.avatar || "";
-    img.alt = p.personaname;
-    
-    const status = document.createElement("div");
-    status.className = "status";
-    status.textContent = "En ligne";
-    
-    div.appendChild(img);
-    div.appendChild(status);
-    
-    if (p.gameextrainfo) {
-      const gameName = document.createElement("div");
-      gameName.className = "game-name";
-      gameName.textContent = p.gameextrainfo;
-      div.appendChild(gameName);
-    }
-    
-    container.appendChild(div);
-  });
-}
-
-/* ------------- Populate Owner Filter ------------- */
-function populateOwnerFilter(players) {
-  const select = document.getElementById("ownerFilter");
-  select.innerHTML = '<option value="all">Tous les jeux</option>';
-  
-  players.forEach(p => {
-    const option = document.createElement("option");
-    option.value = p.steamid;
-    option.textContent = `Jeux de ${p.personaname}`;
-    select.appendChild(option);
-  });
-}
-
-/* ------------- Main flow ------------- */
-(async () => {
-  const loader = document.getElementById("loader");
-  const error = document.getElementById("error");
-  const grid = document.getElementById("grid");
-
-  // 1) Charger exclusions.json
-  try {
-    const exRes = await fetch("exclusions.json");
-    EXCLUSIONS = await exRes.json();
-    if (!Array.isArray(EXCLUSIONS)) EXCLUSIONS = [];
-    console.log("Exclusions chargées:", EXCLUSIONS);
-  } catch(e) {
-    console.error("Erreur exclusions.json:", e);
-    EXCLUSIONS = [];
-  }
-
-  // 2) Charger le cache des jeux
-  let cached = loadFromCache();
-  if (cached && Array.isArray(cached)) {
-    cached = cached.map(it => ({ 
-      appid: Number(it.appid), 
-      name: it.name, 
-      owners: Array.isArray(it.owners) ? it.owners.map(String) : [] 
-    }));
-    allGames = cached;
-  }
-
-  // 3) Charger le cache des joueurs
-  let cachedPlayers = loadPlayersCache();
-  if (cachedPlayers && Array.isArray(cachedPlayers)) {
-    cachedPlayers.forEach(p => playersData[p.steamid] = p);
-    populateOwnerFilter(cachedPlayers);
-    updateOnlinePlayers(cachedPlayers);
-  }
-
-  // 4) Afficher le cache si disponible
-  if (allGames.length > 0) {
-    loader.style.display = "none";
-    grid.style.display = "grid";
-    renderGrid();
-  }
-
-  // 5) Charger les données Steam
-  try {
-    // Charger les joueurs
-    const playersRes = await fetch(`${BASE}/players?steamids=${STEAM_IDS.join(",")}`);
-    const playersJson = await playersRes.json();
-    const players = (playersJson.response && playersJson.response.players) ? playersJson.response.players : [];
-
-    playersData = {};
-    players.forEach(p => playersData[p.steamid] = p);
-
-    // Sauvegarder les joueurs
-    savePlayersCache(players);
-    
-    // Mettre à jour l'affichage des joueurs en ligne
-    updateOnlinePlayers(players);
-    
-    // Mettre à jour le filtre par propriétaire
-    populateOwnerFilter(players);
-
-    // Charger les bibliothèques
-    const libs = await Promise.all(STEAM_IDS.map(async id => {
-      const r = await fetch(`${BASE}/ownedgames?steamid=${id}`);
-      const data = await r.json();
-      return { id, games: data.response && data.response.games ? data.response.games : [] };
-    }));
-
-    // Construire la liste complète des jeux
-    const gamesMap = new Map();
-    for (const lib of libs) {
-      for (const g of lib.games) {
-        if (!g || !g.appid) continue;
-        const appidNum = Number(g.appid);
-        
-        if (!gamesMap.has(appidNum)) {
-          gamesMap.set(appidNum, { 
-            appid: appidNum,
-            name: g.name || ("App " + appidNum), 
-            owners: []
-          });
-        }
-        gamesMap.get(appidNum).owners.push(lib.id);
-      }
-    }
-
-    // Convertir en tableau
-    const finalArray = Array.from(gamesMap.values());
-    allGames = finalArray;
-
-    // Sauvegarder le cache si différent
-    const oldCache = loadFromCache();
-    const normOld = oldCache ? oldCache.map(it => ({ 
-      appid: Number(it.appid), 
-      name: it.name, 
-      owners: Array.isArray(it.owners) ? it.owners.map(String) : [] 
-    })) : null;
-    
-    if (!sameData(normOld, finalArray)) {
-      try { 
-        saveToCache(finalArray); 
-        console.log("Cache mis à jour"); 
-      } catch(e) { 
-        console.warn("Impossible de sauver cache:", e); 
-      }
-    }
-
-    // Afficher les jeux
-    loader.style.display = "none";
-    grid.style.display = "grid";
-    renderGrid();
-
-  } catch (err) {
-    console.error("Erreur chargement Steam:", err);
-    loader.style.display = "none";
-    error.style.display = "block";
-    error.textContent = "Erreur : " + String(err);
-  }
-
-})();
+const STEAM_IDS=["76561199797208434","76561199428937867","76561199208559725","76561198342426856","76561199683287336","76561198788807590"];
+const BASE="https://steam-family.onrender.com/api";
+let EXCLUSIONS=[],allGames=[],playersData={};
+function loadCache(k){try{const s=localStorage.getItem(k);return s?JSON.parse(s):null}catch{return null}}
+function saveCache(k,d){localStorage.setItem(k,JSON.stringify(d))}
+function sameData(a,b){if(!a||!b||a.length!==b.length)return false;const sa=[...a].sort((x,y)=>x.appid-y.appid),sb=[...b].sort((x,y)=>x.appid-y.appid);for(let i=0;i<sa.length;i++){if(sa[i].appid!==sb[i].appid||sa[i].name!==sb[i].name)return false;const oa=(sa[i].owners||[]).map(String).sort(),ob=(sb[i].owners||[]).map(String).sort();if(oa.length!==ob.length)return false;for(let j=0;j<oa.length;j++)if(oa[j]!==ob[j])return false}return true}
+function createOwner(n,a){const o=document.createElement("div");o.className="owner";const i=document.createElement("img");i.src=a||"";i.alt=n||"";const nm=document.createElement("div");nm.className="o-name";nm.textContent=n||"";o.appendChild(i);o.appendChild(nm);return o}
+function createCard(g){const c=document.createElement("div");c.className="game-card";c.dataset.appid=String(g.appid);const p=document.createElement("div");p.className="poster";p.innerHTML=`<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${g.appid}/library_600x900.jpg">`;const m=document.createElement("div");m.className="meta";m.innerHTML=`<div class="name">${g.name}</div><div class="copies">${g.owners.length} copies</div>`;const t=document.createElement("div");t.className="toolbox";g.owners.forEach(oid=>{const pl=playersData[oid];t.appendChild(createOwner(pl?(pl.personaname||oid):oid,pl?(pl.avatarfull||""):""))});c.appendChild(p);c.appendChild(m);c.appendChild(t);return c}
+function renderGrid(){const grid=document.getElementById("grid"),search=document.getElementById("searchBar").value.toLowerCase(),ownerFilter=document.getElementById("ownerFilter").value,sortValue=document.getElementById("sortSelect").value;let filtered=allGames.filter(g=>{if(EXCLUSIONS.includes(g.appid))return false;if(search&&!g.name.toLowerCase().includes(search))return false;if(ownerFilter!=="all"&&!g.owners.includes(ownerFilter))return false;return true});filtered.sort((a,b)=>{const nA=a.name.toLowerCase(),nB=b.name.toLowerCase(),cA=a.owners.length,cB=b.owners.length;switch(sortValue){case"az":return nA.localeCompare(nB);case"za":return nB.localeCompare(nA);case"copiesAsc":return cA-cB;case"copiesDesc":return cB-cA;default:return 0}});grid.innerHTML="";filtered.forEach(g=>grid.appendChild(createCard(g)))}
+document.getElementById("sizeSlider").addEventListener("input",e=>document.documentElement.style.setProperty("--card-size",e.target.value+"px"));
+document.getElementById("searchBar").addEventListener("input",renderGrid);
+document.getElementById("sortSelect").addEventListener("change",renderGrid);
+document.getElementById("ownerFilter").addEventListener("change",renderGrid);
+document.getElementById("rouletteBtn").addEventListener("click",()=>{const av=allGames.filter(g=>!EXCLUSIONS.includes(g.appid));if(av.length===0){alert("Aucun jeu disponible pour la roulette !");return}const rg=av[Math.floor(Math.random()*av.length)],modal=document.getElementById("rouletteModal"),poster=document.getElementById("modalPoster"),name=document.getElementById("modalName"),owners=document.getElementById("modalOwners");poster.innerHTML=`<img src="https://cdn.cloudflare.steamstatic.com/steam/apps/${rg.appid}/library_600x900.jpg">`;name.textContent=rg.name;owners.innerHTML="";rg.owners.forEach(oid=>{const pl=playersData[oid];if(pl)owners.appendChild(createOwner(pl.personaname,pl.avatarfull||pl.avatar))});modal.classList.add("active")});
+document.getElementById("closeModal").addEventListener("click",()=>document.getElementById("rouletteModal").classList.remove("active"));
+document.getElementById("rouletteModal").addEventListener("click",e=>{if(e.target.id==="rouletteModal")document.getElementById("rouletteModal").classList.remove("active")});
+function updateOnline(pls){const c=document.getElementById("onlinePlayers");c.innerHTML="";pls.filter(p=>p.personastate&&p.personastate!==0).forEach(p=>{const d=document.createElement("div");d.className="online-player";const i=document.createElement("img");i.src=p.avatarfull||p.avatar||"";i.alt=p.personaname;const s=document.createElement("div");s.className="status";s.textContent="En ligne";d.appendChild(i);d.appendChild(s);if(p.gameextrainfo){const gn=document.createElement("div");gn.className="game-name";gn.textContent=p.gameextrainfo;d.appendChild(gn)}c.appendChild(d)})}
+function populateOwner(pls){const s=document.getElementById("ownerFilter");s.innerHTML='<option value="all">Tous les jeux</option>';pls.forEach(p=>{const o=document.createElement("option");o.value=p.steamid;o.textContent=`Jeux de ${p.personaname}`;s.appendChild(o)})}
+(async()=>{const loader=document.getElementById("loader"),error=document.getElementById("error"),grid=document.getElementById("grid");try{const exRes=await fetch("exclusions.json");EXCLUSIONS=await exRes.json();if(!Array.isArray(EXCLUSIONS))EXCLUSIONS=[]}catch{EXCLUSIONS=[]}let cached=loadCache("steamFamilyCache");if(cached&&Array.isArray(cached)){cached=cached.map(it=>({appid:Number(it.appid),name:it.name,owners:Array.isArray(it.owners)?it.owners.map(String):[]}));allGames=cached}let cachedPlayers=loadCache("steamPlayersCache");if(cachedPlayers&&Array.isArray(cachedPlayers)){cachedPlayers.forEach(p=>playersData[p.steamid]=p);populateOwner(cachedPlayers);updateOnline(cachedPlayers)}if(allGames.length>0){loader.style.display="none";grid.style.display="grid";renderGrid()}try{const playersRes=await fetch(`${BASE}/players?steamids=${STEAM_IDS.join(",")}`),playersJson=await playersRes.json(),players=(playersJson.response&&playersJson.response.players)?playersJson.response.players:[];playersData={};players.forEach(p=>playersData[p.steamid]=p);saveCache("steamPlayersCache",players);updateOnline(players);populateOwner(players);const libs=await Promise.all(STEAM_IDS.map(async id=>{const r=await fetch(`${BASE}/ownedgames?steamid=${id}`),data=await r.json();return{id,games:data.response&&data.response.games?data.response.games:[]}}));const gm=new Map();libs.forEach(lib=>{lib.games.forEach(g=>{if(!g||!g.appid)return;const aid=Number(g.appid);if(!gm.has(aid))gm.set(aid,{appid:aid,name:g.name||("App "+aid),owners:[]});gm.get(aid).owners.push(lib.id)})});const finalArray=Array.from(gm.values());allGames=finalArray;const oldCache=loadCache("steamFamilyCache"),normOld=oldCache?oldCache.map(it=>({appid:Number(it.appid),name:it.name,owners:Array.isArray(it.owners)?it.owners.map(String):[]})):null;if(!sameData(normOld,finalArray))try{saveCache("steamFamilyCache",finalArray)}catch{}loader.style.display="none";grid.style.display="grid";renderGrid()}catch(err){loader.style.display="none";error.style.display="block";error.textContent="Erreur : "+String(err)}})();
 </script>
-
 </body>
 </html>
